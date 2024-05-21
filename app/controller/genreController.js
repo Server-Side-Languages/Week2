@@ -1,3 +1,4 @@
+const Developers = require("../models/Developers");
 const Genre = require("../models/Genre");
 
 const getAllGenres = async (req, res) => {
@@ -42,21 +43,43 @@ const getGenreById = async (req, res) => {
 };
 
 const createGenre = async (req, res) => {
-    const { genre } = req.body;
     try {
-        const newGenre = await Genre.create(genre);
-        console.log("data >>>", newGenre);
+        const { genre } = req.body;
+        console.log("Received genre data:", genre);
+
+        const user = await Developers.findById(genre.developer);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        user.genres = user.genres || [];
+
+        genre.developer = user._id;
+
+        console.log("Genre data after developer assignment:", genre);
+
+        let genreData = new Genre(genre);
+        console.log("Created genre data:", genreData);
+
+        user.genres.push(genreData._id);
+
+        const queries = [genreData.save(), user.save()];
+        await Promise.all(queries);
+
+        genreData = await Genre.findById(genreData._id).populate('developer', 'name');
+        console.log("Populated genre data:", genreData);
+
         res.status(200).json({
             success: true,
+            data: genreData,
             message: `${req.method} - request to Genre endpoint`,
         });
     } catch (error) {
+        console.error("Error creating genre:", error);
         if (error.name === "ValidationError") {
-            console.error("Error Validating!", error);
-            res.status(422).json(error);
+            return res.status(422).json(error);
         } else {
-            console.error(error);
-            res.status(500).json(error);
+            return res.status(500).json({ success: false, message: "Internal server error" });
         }
     }
 };

@@ -22,6 +22,10 @@ const developerSchema = new mongoose.Schema({
         required: [true, "Describe the type of game(s) they have made"],
         maxlength: [500, "Description can be no longer than 500 characters"]
     },
+    genre:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Genre",
+    },
 })
 
 module.exports = mongoose.model('Developer', developerSchema);
